@@ -92,7 +92,8 @@ export const UserProvider = ({ children }: Props) => {
     }
 
     const isLoggedIn = () => {
-        return !!user;
+        if(!isReady) return false;
+        return !!token && !!user;
     }
 
     const logout = () => {
