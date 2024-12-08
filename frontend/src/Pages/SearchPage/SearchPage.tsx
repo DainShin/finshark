@@ -1,16 +1,19 @@
-import React, { ChangeEvent, SyntheticEvent, useState } from 'react';
+import React, { ChangeEvent, SyntheticEvent, useEffect, useState } from 'react';
 import { searchCompanies } from '../../api';
 import { CompanySearch } from '../../company';
 import Search from '../../Search/Search';
 import CardList from '../../Components/CardList/CardList';
 import ListPortfolio from '../../Components/Portfolio/ListPortfolio/ListPortfolio';
+import { PortfolioGet } from '../../Models/Portfolio';
+import { portfolioAddAPI, portfolioDeleteAPI, portfolioGetAPI } from '../../Services/PortfolioService';
+import { toast } from 'react-toastify';
 
 interface Props { }
 
 const SearchPage: React.FC<Props> = (props: Props) => {
   // State 선언
   const [search, setSearch] = useState<string>('');
-  const [portfolioValues, setPortfolioValues] = useState<string[]>([]);
+  const [portfolioValues, setPortfolioValues] = useState<PortfolioGet[] | null>([]);
   const [searchResult, setSearchResult] = useState<CompanySearch[]>([]);
   const [serverError, setServerError] = useState<string>('');
 
@@ -23,29 +26,52 @@ const SearchPage: React.FC<Props> = (props: Props) => {
     console.log(e);
   };
 
+  useEffect(() => {
+    getPortfolio();
+  }, []);
+
+  const getPortfolio = () => {
+    portfolioGetAPI()
+      .then((res) => {
+        if(res?.data) {
+          setPortfolioValues(res?.data);
+        }
+      })
+      .catch((e) => {
+        toast.warning("Could not get portfolio values");
+      });
+  }
+
   // 포트폴리오 추가 핸들러
   const onPortfolioCreate = (e: any) => {
     e.preventDefault();
-
-    // portfolioValues 배열을 순회하면서 배열에 있는 해당 값이 form의 첫번째 입력요소(input 태그)의 값을 가져옴
-    const exists = portfolioValues.find((value) => value === e.target[0].value);
-    // 만약 배열에 있는 값과 input 태그에 있는 값이 같으면 함수종료 실행
-    if (exists) return; 
-
-    // ...portfolioValues는 배열의 기존요소를 펼쳐서 복사.
-    // updatedPortfolio는 기존배열에 새값을 추가한 형태
-    // 기존 portfolioValues=['AAPL', 'GOOGL'],  
-    // 새로운값 e.target[0].value='TSLA'
-    // updatedPortfolio = ['AAPL', 'GOOGL', 'TSLA']
-    const updatedPortfolio = [...portfolioValues, e.target[0].value];
-    setPortfolioValues(updatedPortfolio);
+    portfolioAddAPI(e.target[0].value)
+      .then((res) => {
+        if(res?.status === 204) {
+          toast.success("Stock added to portfolio");
+          getPortfolio();
+        }
+      })
+      .catch((e) => {
+        toast.warning("Could not create portfolio item");
+      })
+    
   };
 
   // 포트폴리오 삭제 핸들러
   const onPortfolioDelete = (e: any) => {
     e.preventDefault(); // 기본 제출 동작을 막음
-    const removed = portfolioValues.filter((value) => value !== e.target[0].value);
-    setPortfolioValues(removed);
+    portfolioDeleteAPI(e.target[0].value)
+      .then((res) => {
+        if(res?.status === 200) {
+          toast.success("Stock deleted from portfolio");
+          getPortfolio();
+        }
+      })
+      .catch((e) => {
+        toast.warning("Could not delete portfolio item");
+      })
+   
   };
 
   // 검색 제출 핸들러
@@ -71,7 +97,7 @@ const SearchPage: React.FC<Props> = (props: Props) => {
       />
       {serverError && <h1>{serverError}</h1>}
       {/* serverError가 존재하면 에러 메시지 출력 */}
-      <ListPortfolio portfolioValues={portfolioValues} onPortfolioDelete={onPortfolioDelete} />
+      <ListPortfolio portfolioValues={portfolioValues!} onPortfolioDelete={onPortfolioDelete} />
       <CardList searchResults={searchResult} onPortfolioCreate={onPortfolioCreate} />
     </>
   );
