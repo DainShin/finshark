@@ -24,7 +24,7 @@ type UserContextType = {
     isLoggedIn: () => boolean;
 };
 
-// childeren: 컴포넌트의 자식요소들을 나타냄
+// children: 컴포넌트의 자식요소들을 나타냄
 // React.ReactNode: React에서 렌더링할 수 있는 요소 포함 (ex. jsx요소, 문자열, 숫자, 배열 등)
 type Props = { children: React.ReactNode };
 
